@@ -2,6 +2,7 @@
 #include <libopencm3/stm32/f4/gpio.h>
 #include <libopencm3/usb/usbd.h>
 
+int k = 0;
 const struct usb_device_descriptor dev = {
 	.bLength = USB_DT_DEVICE_SIZE,
 	.bDescriptorType = USB_DT_DEVICE,
@@ -89,7 +90,7 @@ static int simple_control_callback(usbd_device *usbd_dev, struct usb_setup_data 
     //if(buf[0][0] == 0x00)
     //    gpio_set(GPIOD, GPIO12);
     //if(buf[0][0] == 0xff)
-    //    gpio_clear(GPIOD, GPIO12);
+    //     gpio_clear(GPIOD, GPIO12);
 
 	return 1;
 }
@@ -97,16 +98,18 @@ static int simple_control_callback(usbd_device *usbd_dev, struct usb_setup_data 
 static void cdcacm_data_rx_cb(usbd_device *usbd_dev, u8 ep)
 {
 	(void)ep;
+	gpio_toggle(GPIOD, GPIO12);
 
 	char buf[64];
 	int len = usbd_ep_read_packet(usbd_dev, 0x01, buf, 64);
-
+    //gpio_toggle(GPIOD, GPIO14);
+    k++;
 	//if (len) {
 	//	while (usbd_ep_write_packet(usbd_dev, 0x82, buf, len) == 0)
 	//		;
 	//}
 
-	gpio_toggle(GPIOD, GPIO12);
+	
 }
 
 static void cdcacm_set_config(usbd_device *usbd_dev, u16 wValue)
@@ -136,12 +139,17 @@ int main(void)
 
 
 	/* LED output */
-	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
+	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12 | GPIO13 | GPIO14);
 
 	usbd_dev = usbd_init(&otgfs_usb_driver, &dev, &config, usb_strings);
 	usbd_register_set_config_callback(usbd_dev, cdcacm_set_config);
 	
-	while (1)
+
+	while (1){
 		usbd_poll(usbd_dev);
+	   if(k == 10000){
+	       gpio_set(GPIOD, GPIO14);
+	   }
+	}
 }
 
